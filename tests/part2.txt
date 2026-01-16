@@ -1,0 +1,1 @@
+try this test case ; = 12345 77.00 0 0xff 0xtesting565 + 99 * 34.00 ( CSE110A + {100.0000 + 9999 )} = {sanity checks CSE110A.001} (this works 00.11 12 0x5678fghj)
