@@ -15,7 +15,7 @@ class StringStream:
         return len(self.string) == 0
 
     def peek_char(self) -> Optional[str]:
-        if not self.is_empty():            
+        if not self.is_empty():
             return self.string[0]
         return None
 
@@ -23,11 +23,11 @@ class StringStream:
         # take the first character off the string
         self.string = self.string[1:]
 
-# put characters to ignore in this array        
+
+# put characters to ignore in this array
 IGNORE = [" ", "\n"]
 NUMS   = [str(x) for x in range(10)]
 
-# From: https://www.adamsmith.haus/python/answers/how-to-make-a-list-of-the-alphabet-in-python
 alphabet_string = string.ascii_lowercase
 CHARS = list(alphabet_string)
 
@@ -36,9 +36,9 @@ class Token(Enum):
     MULT   = "MULT"
     ASSIGN = "ASSIGN"
     SEMI   = "SEMI"
+    INCR   = "INCR"
     ID     = "ID"
     NUM    = "NUM"
-
 
 class Lexeme:
     def __init__(self, token:Token, value:str) -> None:
@@ -53,21 +53,81 @@ class NaiveScanner:
     def __init__(self, input_string:str) -> None:
         self.ss = StringStream(input_string)
 
+    # helper methods (allowed: new functions)
+    def _skip_ignored(self) -> None:
+        while self.ss.peek_char() in IGNORE:
+            self.ss.eat_char()
+
+    def _scan_id(self) -> Lexeme:
+        # precondition: first char is a lowercase letter
+        value = ""
+        # first char must be a letter
+        value += self.ss.peek_char()
+        self.ss.eat_char()
+
+        # after that, letters OR digits are allowed
+        while True:
+            c = self.ss.peek_char()
+            if c is None:
+                break
+            if (c in CHARS) or (c in NUMS):
+                value += c
+                self.ss.eat_char()
+            else:
+                break
+        return Lexeme(Token.ID, value)
+
+    def _scan_num(self) -> Lexeme:
+        # precondition: first char is a digit
+        value = ""
+        seen_dot = False
+
+        # read leading digits
+        while self.ss.peek_char() in NUMS:
+            value += self.ss.peek_char()
+            self.ss.eat_char()
+
+        # optional decimal part
+        if self.ss.peek_char() == ".":
+            seen_dot = True
+            value += "."
+            self.ss.eat_char()
+
+            # MUST have at least one digit after the dot
+            if self.ss.peek_char() not in NUMS:
+                raise ScannerException()
+
+            while self.ss.peek_char() in NUMS:
+                value += self.ss.peek_char()
+                self.ss.eat_char()
+
+        # if a second dot appears right after, that's invalid for NUM token
+        # (example: "1.2.3" should fail at the second dot)
+        if seen_dot and self.ss.peek_char() == ".":
+            raise ScannerException()
+
+        return Lexeme(Token.NUM, value)
+
     def token(self) -> Optional[Lexeme]:
 
         # First handle the ignore case
-        while self.ss.peek_char() in IGNORE:
-            self.ss.eat_char()
+        self._skip_ignored()
 
         # If there is nothing to return, return None
         if self.ss.is_empty():
             return None
 
-        # Scan for the single character tokens
+        # multi-char operator must be checked before single-char
         if self.ss.peek_char() == "+":
+            # INCR: "++"
             self.ss.eat_char()
+            if self.ss.peek_char() == "+":
+                self.ss.eat_char()
+                return Lexeme(Token.INCR, "++")
+            # otherwise it's just ADD
             return Lexeme(Token.ADD, "+")
-        
+
+        # Scan for the single character tokens
         if self.ss.peek_char() == "*":
             self.ss.eat_char()
             return Lexeme(Token.MULT, "*")
@@ -76,26 +136,20 @@ class NaiveScanner:
             self.ss.eat_char()
             return Lexeme(Token.ASSIGN, "=")
 
+        if self.ss.peek_char() == ";":
+            self.ss.eat_char()
+            return Lexeme(Token.SEMI, ";")
+
         # Scan for the multi character tokens
         if self.ss.peek_char() in CHARS:
-            value = ""
-            while self.ss.peek_char() in CHARS:
-                value += self.ss.peek_char()
-                self.ss.eat_char()
-            return Lexeme(Token.ID, value)
+            return self._scan_id()
 
         if self.ss.peek_char() in NUMS:
-            value = ""
-            while self.ss.peek_char() in NUMS:
-                value += self.ss.peek_char()
-                self.ss.eat_char()
-            return Lexeme(Token.NUM, value)
+            return self._scan_num()
 
         # if we cannot match a token, throw an exception
-        # you should implement a line number to pass
-        # to the exeception
         raise ScannerException()
-    
+
 
 if __name__ == "__main__":
 
@@ -103,8 +157,8 @@ if __name__ == "__main__":
     parser.add_argument('file_name', type=str)
     parser.add_argument('--verbose', '-v', action='store_true')
     args = parser.parse_args()
-    
-    f = open(args.file_name)    
+
+    f = open(args.file_name)
     f_contents = f.read()
     f.close()
 
@@ -120,4 +174,4 @@ if __name__ == "__main__":
         if (verbose):
             print(t)
     end = time()
-    print("time to parse (seconds): ",str(end-start))
+    print("time to parse (seconds): ", str(end-start))
