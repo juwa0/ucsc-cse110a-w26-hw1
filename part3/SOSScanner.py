@@ -6,18 +6,22 @@ import os
 from typing import Callable, List, Tuple, Optional
 from part2.tokens import tokens, Token, Lexeme
 
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
+if PART2_DIR not in sys.path:
+    sys.path.insert(0, PART2_DIR)
+
 class ScannerException(Exception):
     pass
 
-
 class SOSScanner:
-    def __init__(self, tokens: List[Tuple[tokmod.Token, str, Callable[[tokmod.Lexeme], tokmod.Lexeme]]]) -> None:
+    def __init__(self, tokens: List[Tuple[Token, str, Callable[[Lexeme], Lexeme]]]) -> None:
         self.tokens = tokens
 
     def input_string(self, input_string: str) -> None:
         self.istring = input_string
 
-    def token(self) -> Optional[tokmod.Lexeme]:
+    def token(self) -> Optional[Lexeme]:
         while True:
             if len(self.istring) == 0:
                 return None
@@ -41,13 +45,13 @@ class SOSScanner:
                     best = cand
 
             tok, text, action = best
-            out = action(tokmod.Lexeme(tok, text))
+            out = action(Lexeme(tok, text))
 
             # Chop off matched prefix
             self.istring = self.istring[len(text):]
 
             # Skip IGNORE tokens
-            if out.token == tokmod.Token.IGNORE:
+            if out.token == Token.IGNORE:
                 continue
 
             return out
@@ -62,7 +66,7 @@ if __name__ == "__main__":
     with open(args.file_name) as f:
         f_contents = f.read()
 
-    s = SOSScanner(tokmod.tokens)
+    s = SOSScanner(tokens)
     s.input_string(f_contents)
 
     start = time()
