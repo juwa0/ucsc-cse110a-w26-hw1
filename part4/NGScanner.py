@@ -1,42 +1,87 @@
 import re
-from functools import reduce
 from time import time
 import argparse
-import pdb
 import sys
-sys.path.append("../part2/")
-from tokens import tokens,Token,Lexeme
-from typing import Callable,List,Tuple,Optional
+import os
+from typing import Callable, List, Tuple, Optional
 
-# No line number this time
+# Make imports work no matter where the program/tests are run from
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
+if PART2_DIR not in sys.path:
+    sys.path.insert(0, PART2_DIR)
+
+# Import module to avoid duplicate Token enums
+import tokens as tokmod
+
+
 class ScannerException(Exception):
     pass
 
+
 class NGScanner:
-    def __init__(self, tokens: List[Tuple[Token,str,Callable[[Lexeme],Lexeme]]]) -> None:
+    def __init__(self, tokens: List[Tuple[tokmod.Token, str, Callable[[tokmod.Lexeme], tokmod.Lexeme]]]) -> None:
         self.tokens = tokens
 
-    def input_string(self, input_string:str) -> None:
+        # Build one giant named-group regex:
+        # (?P<TOKENNAME>pattern)|(?P<OTHERTOKEN>pattern)|...
+        # We keep token order because ties should resolve by token list order.
+        parts = []
+        for (tok, pattern, _action) in self.tokens:
+            group_name = tok.value  # e.g., "ID", "NUM", "PLUS"
+            parts.append(f"(?P<{group_name}>{pattern})")
+
+        self.master_pattern = re.compile("|".join(parts))
+
+        # Map group name back to the Token object
+        self.name_to_token = {tok.value: tok for (tok, _pattern, _action) in self.tokens}
+
+        # For applying actions, map Token -> action
+        self.token_to_action = {tok: action for (tok, _pattern, action) in self.tokens}
+
+    def input_string(self, input_string: str) -> None:
         self.istring = input_string
-        
-    def token(self) -> Optional[Lexeme]:
-        # Implement me!
-        pass
+
+    def token(self) -> Optional[tokmod.Lexeme]:
+        while True:
+            if len(self.istring) == 0:
+                return None
+
+            m = self.master_pattern.match(self.istring)
+            if m is None:
+                raise ScannerException()
+
+            # Determine which named group matched
+            group_name = m.lastgroup
+            if group_name is None:
+                raise ScannerException()
+
+            text = m.group(group_name)
+            tok = self.name_to_token[group_name]
+            action = self.token_to_action[tok]
+
+            out = action(tokmod.Lexeme(tok, text))
+
+            # Consume the matched prefix
+            self.istring = self.istring[len(text):]
+
+            # Skip IGNORE tokens
+            if out.token == tokmod.Token.IGNORE:
+                continue
+
+            return out
+
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('file_name', type=str)
-    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument("file_name", type=str)
+    parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
-    
-    f = open(args.file_name)    
-    f_contents = f.read()
-    f.close()
 
-    verbose = args.verbose
+    with open(args.file_name) as f:
+        f_contents = f.read()
 
-    s = NGScanner(tokens)
+    s = NGScanner(tokmod.tokens)
     s.input_string(f_contents)
 
     start = time()
@@ -44,7 +89,7 @@ if __name__ == "__main__":
         t = s.token()
         if t is None:
             break
-        if (verbose):
+        if args.verbose:
             print(t)
     end = time()
-    print("time to parse (seconds): ",str(end-start))    
+    print("time to parse (seconds): ", str(end - start))

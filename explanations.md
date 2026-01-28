@@ -68,19 +68,40 @@ Something I ran into was in NUM edge cases, my initial regex allowed nunmbers li
 
 ### Correctness: Describe how your SOS scanner implements the required behavior, including tricky cases.
 
-Type your answer here.
+The SOS scanner tokenizes by matching only at the start of the remaining string using re.match for every token pattern. On each call to token(), it collects all start-of-string matches and returns the longest one. It also applies the token action so IDs can become keywords and skips IGNORE tokens in a loop. Tricky cases handled correctly include ++ vs + and recognizing keywords like if via the ID token action.
 
 ### Conceptual: Explain how your design matches the SOS scanning approach.
 
-Type your answer here.
+This matches the SOS approach because the scanner never checks every substring like the EM scanner. Instead, it only considers token matches anchored at their current position. It then consumes exactly the matched prefix and repeats. 
 
 ### Experiments: Report timings for 10/100/1000/10000 tokens and compare to the EM scanner.
 
-Type your answer here.
+I timed the SOS scanner locally without -v using:
+python3 SOSScanner.py ../tests/test10.txt 
+python3 SOSScanner.py ../tests/test100.txt
+python3 SOSScanner.py ../tests/test1000.txt
+python3 SOSScanner.py ../tests/test10000.txt
+
+Timing results (no verbose printing):
+10 tokens: 0.00032711029052734375 seconds
+100 tokens: 0.001007080078125 seconds
+1000 tokens: 0.008189916610717773 seconds
+10000 tokens: 0.13753318786621094 seconds
+
+EMScanner timings:
+part2.txt: 0.0338139534 seconds
+test10.txt: 0.0091381073 seconds
+test100.txt: 1.1023919582 seconds
+
+Speedup examples:
+On test10: EM / SOS ≈ 28× faster (0.009138 / 0.000327)
+On test100: EM / SOS ≈ ~1095× faster (1.102392 / 0.001007)
+
+The SOS scanner is a lot faster, at around 10 tokens it was almost 30x faster, and at 100 tokens it was neatly 1100x faster!
 
 ### Explanation: Summarize implementation details and performance observations.
 
-Type your answer here.
+The main improvement over EMScanner is that the SOSScanner checks each token regex once per call at the start of the string instead of looking through every possible substring with re.fullmatch. Performance-wise, the SOS scanner scales much closer to linearly with input size while the EM scanner grows fast because it repeatedly tests many substrings against all token patterns.
 
 ## Part 4
 
