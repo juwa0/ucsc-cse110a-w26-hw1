@@ -1,16 +1,19 @@
 import re
-from functools import reduce
 from time import time
 import argparse
 import sys
-
-# allow importing tokens from part2
-sys.path.append("../part2/")
-from tokens import tokens, Token, Lexeme
+import os
 from typing import Callable, List, Tuple, Optional
 
+# Make imports work no matter where the program/tests are run from
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
+if PART2_DIR not in sys.path:
+    sys.path.append(PART2_DIR)
 
-# No line number this time
+from tokens import tokens, Token, Lexeme
+
+
 class ScannerException(Exception):
     pass
 
@@ -23,56 +26,46 @@ class SOSScanner:
         self.istring = input_string
 
     def token(self) -> Optional[Lexeme]:
-        # If input is empty, we are done
-        if len(self.istring) == 0:
-            return None
+        # Consume IGNORE tokens in a loop (no recursion)
+        while True:
+            if len(self.istring) == 0:
+                return None
 
-        matches = []
+            matches = []
 
-        # Try matching each token at the START of the string
-        for t in self.tokens:
-            tok, pattern, action = t
-            m = re.match(pattern, self.istring)
-            if m is not None:
-                value = m.group(0)
-                matches.append((tok, value, action))
+            # match each token ONCE at the start of string
+            for (tok, pattern, action) in self.tokens:
+                m = re.match(pattern, self.istring)
+                if m is not None:
+                    lexeme_text = m.group(0)
+                    matches.append((tok, lexeme_text, action))
 
-        # If nothing matches at position 0, it's a scanner error
-        if len(matches) == 0:
-            raise ScannerException()
+            if len(matches) == 0:
+                raise ScannerException()
 
-        # Choose the longest match (maximal munch)
-        longest = matches[0]
-        for cand in matches[1:]:
-            if len(cand[1]) > len(longest[1]):
-                longest = cand
+            # maximal munch (longest match); ties resolved by token order
+            best = matches[0]
+            for cand in matches[1:]:
+                if len(cand[1]) > len(best[1]):
+                    best = cand
 
-        tok, value, action = longest
+            tok, text, action = best
+            out = action(Lexeme(tok, text))
+            self.istring = self.istring[len(text):]
 
-        # Apply token action (used for keywords)
-        lex = action(Lexeme(tok, value))
-
-        # Remove matched prefix from input string
-        self.istring = self.istring[len(value):]
-
-        # Skip IGNORE tokens
-        if lex.token == Token.IGNORE:
-            return self.token()
-
-        return lex
+            if out.token == Token.IGNORE:
+                continue
+            return out
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('file_name', type=str)
-    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument("file_name", type=str)
+    parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
     with open(args.file_name) as f:
         f_contents = f.read()
-
-    verbose = args.verbose
 
     s = SOSScanner(tokens)
     s.input_string(f_contents)
@@ -82,8 +75,7 @@ if __name__ == "__main__":
         t = s.token()
         if t is None:
             break
-        if verbose:
+        if args.verbose:
             print(t)
     end = time()
-
     print("time to parse (seconds): ", str(end - start))

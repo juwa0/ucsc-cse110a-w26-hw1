@@ -80,7 +80,6 @@ class NaiveScanner:
     def _scan_num(self) -> Lexeme:
         # precondition: first char is a digit
         value = ""
-        seen_dot = False
 
         # read leading digits
         while self.ss.peek_char() in NUMS:
@@ -89,7 +88,6 @@ class NaiveScanner:
 
         # optional decimal part
         if self.ss.peek_char() == ".":
-            seen_dot = True
             value += "."
             self.ss.eat_char()
 
@@ -101,10 +99,9 @@ class NaiveScanner:
                 value += self.ss.peek_char()
                 self.ss.eat_char()
 
-        # if a second dot appears right after, that's invalid for NUM token
-        # (example: "1.2.3" should fail at the second dot)
-        if seen_dot and self.ss.peek_char() == ".":
-            raise ScannerException()
+        # IMPORTANT: do NOT raise if the next char is '.'
+        # Example: "1.2.3" should return NUM("1.2") first,
+        # then fail on the next token() call when it sees '.'
 
         return Lexeme(Token.NUM, value)
 
