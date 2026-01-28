@@ -9,9 +9,10 @@ from typing import Callable, List, Tuple, Optional
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
 if PART2_DIR not in sys.path:
-    sys.path.append(PART2_DIR)
+    sys.path.insert(0, PART2_DIR)
 
-from tokens import tokens, Token, Lexeme
+# Import the module itself so Token/Lexeme come from the same module instance
+import tokens as tokmod
 
 
 class ScannerException(Exception):
@@ -19,42 +20,45 @@ class ScannerException(Exception):
 
 
 class SOSScanner:
-    def __init__(self, tokens: List[Tuple[Token, str, Callable[[Lexeme], Lexeme]]]) -> None:
+    def __init__(self, tokens: List[Tuple[tokmod.Token, str, Callable[[tokmod.Lexeme], tokmod.Lexeme]]]) -> None:
         self.tokens = tokens
 
     def input_string(self, input_string: str) -> None:
         self.istring = input_string
 
-    def token(self) -> Optional[Lexeme]:
-        # Consume IGNORE tokens in a loop (no recursion)
+    def token(self) -> Optional[tokmod.Lexeme]:
         while True:
             if len(self.istring) == 0:
                 return None
 
             matches = []
 
-            # match each token ONCE at the start of string
+            # Match each token ONCE at start-of-string
             for (tok, pattern, action) in self.tokens:
                 m = re.match(pattern, self.istring)
                 if m is not None:
-                    lexeme_text = m.group(0)
-                    matches.append((tok, lexeme_text, action))
+                    text = m.group(0)
+                    matches.append((tok, text, action))
 
             if len(matches) == 0:
                 raise ScannerException()
 
-            # maximal munch (longest match); ties resolved by token order
+            # Maximal munch: pick the longest match (ties -> token list order)
             best = matches[0]
             for cand in matches[1:]:
                 if len(cand[1]) > len(best[1]):
                     best = cand
 
             tok, text, action = best
-            out = action(Lexeme(tok, text))
+            out = action(tokmod.Lexeme(tok, text))
+
+            # Chop off matched prefix
             self.istring = self.istring[len(text):]
 
-            if out.token == Token.IGNORE:
+            # Skip IGNORE tokens
+            if out.token == tokmod.Token.IGNORE:
                 continue
+
             return out
 
 
@@ -67,7 +71,7 @@ if __name__ == "__main__":
     with open(args.file_name) as f:
         f_contents = f.read()
 
-    s = SOSScanner(tokens)
+    s = SOSScanner(tokmod.tokens)
     s.input_string(f_contents)
 
     start = time()
