@@ -32,19 +32,37 @@ I mainly made choices about the implementation for proper ordering and simple sc
 
 ### Submission: Summarize what you submitted in tokens.py and where it lives in your repo.
 
-Type your answer here.
+I submitted a finished tokens.py file in the part2 folder of my repo. It defines all required tokens using regular expressions, including identifiers, numbers, hexadecimals, operators, punctuation, and ignored whitespace.
 
 ### Written Report: Describe your RE definitions and include timing results for the EM scanner.
 
-Type your answer here.
+ID: [A-Za-z][A-Za-z0-9]*
+    This makes sure that identifiers can contain letters and digits but not start with a digit. A token action converts matching lexemes into keyword tokens like IF, ELSE, WHILE, INT, FLOAT when the lexeme value matches a reserved word
+
+NUM: (?:[0-9]+|[0-9]*\.[0-9]+)
+    This allows non-negative integers and decimals. If a decimal point show up, at least one digit must follow it.
+
+HNUM: 0[xX][0-9a-fA-F]+ 
+    This matches hexadecimal numbers starting with 0x or 0X, followed by one or more hexadecimal digits and it is not case sensitive.
+
+Operators and punctuation (INCR, PLUS, MULT, SEMI, LPAREN, RPAREN, LBRACE, RBRACE, ASSIGN) are matched using exact regular expressions (e.g., \+\+, \+, \*, etc.).
+
+IGNORE: [ \n]+
+    This consumes runs of spaces and newlienes so the scanner skips them.
+
+I ran the EMScanner on small test files, since it does exact matching over all substrings, and thus it is slow for big inputs. These are the results:
+Part 2 test file: 0.0338139533996582 seconds
+10 tokens: 0.009138107299804688 seconds
+100 tokens: 1.1023919582366943 seconds
 
 ### Testing and Verification: Explain how you tested part2.txt (locally and on Gradescope) and report the outcomes.
 
-Type your answer here.
+I tested part2.txt locally and on Gradescope. The scanner tokenized part2.txt without throwing a ScannerException, and the verbose output showed the correct sequence of tokens in 0.028859853744506836 seconds.
+I then submitted the file to Gradescope and it passed all tests!
 
 ### Debugging and Iteration: Describe any failures you encountered and how you resolved them (include submission iterations if relevant).
 
-Type your answer here.
+Something I ran into was in NUM edge cases, my initial regex allowed nunmbers like 56,. I fixed this by enforcing at least one digit after the decimal point. After that, I submitted the file to Gradescope and it passed all tests!
 
 ## Part 3
 
