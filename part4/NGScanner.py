@@ -13,7 +13,7 @@ if PART2_DIR not in sys.path:
 
 # Import module to avoid duplicate Token enums
 import tokens as tokmod
-tokens = tkmod.tokens
+tokens = tokmod.tokens
 
 
 class ScannerException(Exception):

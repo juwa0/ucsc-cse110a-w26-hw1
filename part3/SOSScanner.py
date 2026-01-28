@@ -13,7 +13,7 @@ if PART2_DIR not in sys.path:
 
 # Import the module itself so Token/Lexeme come from the same module instance
 import tokens as tokmod
-tokens = tkmod.tokens
+tokens = tokmod.tokens
 
 class ScannerException(Exception):
     pass
