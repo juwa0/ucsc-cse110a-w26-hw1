@@ -22,6 +22,7 @@ class ScannerException(Exception):
 class SOSScanner:
     def __init__(self, tokens: List[Tuple[tokmod.Token, str, Callable[[tokmod.Lexeme], tokmod.Lexeme]]]) -> None:
         self.tokens = tokens
+        self._compiled = [(tok, re.compile(pattern), action) for (tok, pattern, action) in self.tokens]
 
     def input_string(self, input_string: str) -> None:
         self.istring = input_string
@@ -34,8 +35,8 @@ class SOSScanner:
             matches = []
 
             # Match each token ONCE at start-of-string
-            for (tok, pattern, action) in self.tokens:
-                m = re.match(pattern, self.istring)
+            for (tok, cregex, action) in self._compiled:
+                m = cregex.match(self.istring)
                 if m is not None:
                     text = m.group(0)
                     matches.append((tok, text, action))

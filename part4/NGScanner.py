@@ -65,7 +65,7 @@ class NGScanner:
             self.istring = self.istring[len(text):]
 
             # Skip IGNORE tokens
-            if out.token == tokmod.Token.IGNORE:
+            if tok.name == "IGNORE":
                 continue
 
             return out
