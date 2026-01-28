@@ -4,15 +4,23 @@ import argparse
 import sys
 import os
 from typing import Callable, List, Tuple, Optional
-try:
-    import part2.tokens as tokmod
-except Exception:
-    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-    PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
-    if PART2_DIR not in sys.path:
-        sys.path.insert(0, PART2_DIR)
-    import tokens as tokmod
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ✅ Try both layouts (root-level or inside part4/)
+CANDIDATES = [
+    os.path.normpath(os.path.join(THIS_DIR, "part2")),
+    os.path.normpath(os.path.join(THIS_DIR, "..", "part2")),
+]
+for p in CANDIDATES:
+    if os.path.isdir(p) and p not in sys.path:
+        sys.path.insert(0, p)
+
+import tokens as tokmod
+
+# ✅ required by Gradescope: `from NGScanner import NGScanner, tokens`
 tokens = tokmod.tokens
+
 
 class ScannerException(Exception):
     pass
@@ -22,21 +30,16 @@ class NGScanner:
     def __init__(self, tokens: List[Tuple[tokmod.Token, str, Callable[[tokmod.Lexeme], tokmod.Lexeme]]]) -> None:
         self.tokens = tokens
 
-        # Build one giant named-group regex:
-        # (?P<TOKENNAME>pattern)|(?P<OTHERTOKEN>pattern)|...
-        # We keep token order because ties should resolve by token list order.
         parts = []
-        for (tok, pattern, _action) in self.tokens:
-            group_name = tok.value  # e.g., "ID", "NUM", "PLUS"
-            parts.append(f"(?P<{group_name}>{pattern})")
+        self.name_to_token = {}
+        self.token_to_action = {}
 
-        self.master_pattern = re.compile("|".join(parts))
+        for (tok, pattern, action) in self.tokens:
+            parts.append(f"(?P<{tok.value}>{pattern})")
+            self.name_to_token[tok.value] = tok
+            self.token_to_action[tok] = action
 
-        # Map group name back to the Token object
-        self.name_to_token = {tok.value: tok for (tok, _pattern, _action) in self.tokens}
-
-        # For applying actions, map Token -> action
-        self.token_to_action = {tok: action for (tok, _pattern, action) in self.tokens}
+        self.master = re.compile("|".join(parts))
 
     def input_string(self, input_string: str) -> None:
         self.istring = input_string
@@ -46,28 +49,23 @@ class NGScanner:
             if len(self.istring) == 0:
                 return None
 
-            m = self.master_pattern.match(self.istring)
+            m = self.master.match(self.istring)
             if m is None:
                 raise ScannerException()
 
-            # Determine which named group matched
-            group_name = m.lastgroup
-            if group_name is None:
+            name = m.lastgroup
+            if name is None:
                 raise ScannerException()
 
-            text = m.group(group_name)
-            tok = self.name_to_token[group_name]
+            text = m.group(name)
+            tok = self.name_to_token[name]
             action = self.token_to_action[tok]
 
             out = action(tokmod.Lexeme(tok, text))
-
-            # Consume the matched prefix
             self.istring = self.istring[len(text):]
 
-            # Skip IGNORE tokens
-            if tok.name == "IGNORE":
+            if out.token == tokmod.Token.IGNORE:
                 continue
-
             return out
 
 
@@ -80,7 +78,7 @@ if __name__ == "__main__":
     with open(args.file_name) as f:
         f_contents = f.read()
 
-    s = NGScanner(tokmod.tokens)
+    s = NGScanner(tokens)
     s.input_string(f_contents)
 
     start = time()
@@ -91,4 +89,5 @@ if __name__ == "__main__":
         if args.verbose:
             print(t)
     end = time()
+
     print("time to parse (seconds): ", str(end - start))
