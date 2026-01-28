@@ -4,16 +4,7 @@ import argparse
 import sys
 import os
 from typing import Callable, List, Tuple, Optional
-
-# Make imports work no matter where the program/tests are run from
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
-if PART2_DIR not in sys.path:
-    sys.path.insert(0, PART2_DIR)
-
-# Import the module itself so Token/Lexeme come from the same module instance
-import tokens as tokmod
-tokens = tokmod.tokens
+from part2.tokens import tokens, Token, Lexeme
 
 class ScannerException(Exception):
     pass
