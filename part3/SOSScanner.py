@@ -5,20 +5,28 @@ import sys
 import os
 from typing import Callable, List, Tuple, Optional
 
+import importlib.util
+import os
+
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# ✅ Try both layouts (root-level or inside part3/)
-CANDIDATES = [
-    os.path.normpath(os.path.join(THIS_DIR, "part2")),
-    os.path.normpath(os.path.join(THIS_DIR, "..", "part2")),
+candidates = [
+    os.path.join(THIS_DIR, "..", "part2", "tokens.py"),
+    os.path.join(THIS_DIR, "part2", "tokens.py"),
 ]
-for p in CANDIDATES:
-    if os.path.isdir(p) and p not in sys.path:
-        sys.path.insert(0, p)
+TOKENS_PATH = None
+for p in candidates:
+    p = os.path.normpath(p)
+    if os.path.isfile(p):
+        TOKENS_PATH = p
+        break
 
-import tokens as tokmod
+if TOKENS_PATH is None:
+    raise ImportError("Could not find part2/tokens.py")
 
-# ✅ required by Gradescope: `from SOSScanner import SOSScanner, tokens`
+spec = importlib.util.spec_from_file_location("hw_tokens", TOKENS_PATH)
+tokmod = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+spec.loader.exec_module(tokmod)
 tokens = tokmod.tokens
 
 
