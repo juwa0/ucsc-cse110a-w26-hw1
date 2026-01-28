@@ -5,12 +5,14 @@ import sys
 import os
 from typing import Callable, List, Tuple, Optional
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
-if PART2_DIR not in sys.path:
-    sys.path.insert(0, PART2_DIR)
-
-import tokens as tokmod
+try:
+    import part2.tokens as tokmod
+except Exception:
+    THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+    PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
+    if PART2_DIR not in sys.path:
+        sys.path.insert(0, PART2_DIR)
+    import tokens as tokmod
 tokens = tokmod.tokens
 
 class ScannerException(Exception):
