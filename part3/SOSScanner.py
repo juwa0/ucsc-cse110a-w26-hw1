@@ -4,24 +4,27 @@ import argparse
 import sys
 import os
 from typing import Callable, List, Tuple, Optional
-from part2.tokens import tokens, Token, Lexeme
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 PART2_DIR = os.path.normpath(os.path.join(THIS_DIR, "..", "part2"))
 if PART2_DIR not in sys.path:
     sys.path.insert(0, PART2_DIR)
 
+import tokens as tokmod
+tokens = tokmod.tokens
+
 class ScannerException(Exception):
     pass
 
+
 class SOSScanner:
-    def __init__(self, tokens: List[Tuple[Token, str, Callable[[Lexeme], Lexeme]]]) -> None:
+    def __init__(self, tokens: List[Tuple[tokmod.Token, str, Callable[[tokmod.Lexeme], tokmod.Lexeme]]]) -> None:
         self.tokens = tokens
 
     def input_string(self, input_string: str) -> None:
         self.istring = input_string
 
-    def token(self) -> Optional[Lexeme]:
+    def token(self) -> Optional[tokmod.Lexeme]:
         while True:
             if len(self.istring) == 0:
                 return None
@@ -45,13 +48,13 @@ class SOSScanner:
                     best = cand
 
             tok, text, action = best
-            out = action(Lexeme(tok, text))
+            out = action(tokmod.Lexeme(tok, text))
 
             # Chop off matched prefix
             self.istring = self.istring[len(text):]
 
             # Skip IGNORE tokens
-            if out.token == Token.IGNORE:
+            if out.token == tokmod.Token.IGNORE:
                 continue
 
             return out

@@ -39,7 +39,7 @@ class NGScanner:
     def input_string(self, input_string: str) -> None:
         self.istring = input_string
 
-    def token(self) -> Optional[Lexeme]:
+    def token(self) -> Optional[tokmod.Lexeme]:
         while True:
             if len(self.istring) == 0:
                 return None
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     with open(args.file_name) as f:
         f_contents = f.read()
 
-    s = NGScanner(tokens)
+    s = NGScanner(tokmod.tokens)
     s.input_string(f_contents)
 
     start = time()
